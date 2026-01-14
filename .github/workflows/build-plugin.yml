@@ -1,0 +1,54 @@
+name: Build and Zip Plugin
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Build React Assets
+      run: npm run build
+
+    - name: Create Plugin Zip
+      run: |
+        # Create a temporary directory for the zip structure
+        mkdir -p temp-plugin/mp-ai-content-generator
+        
+        # Copy relevant files (excluding node_modules, src, etc.)
+        rsync -av --progress ./ temp-plugin/mp-ai-content-generator/ \
+          --exclude '.git' \
+          --exclude '.github' \
+          --exclude 'node_modules' \
+          --exclude 'src' \
+          --exclude '.gitignore' \
+          --exclude 'package.json' \
+          --exclude 'package-lock.json' \
+          --exclude '*.zip'
+          
+        # Zip the directory
+        cd temp-plugin
+        zip -r ../mp-ai-content-generator.zip mp-ai-content-generator
+
+    - name: Upload Plugin Zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: mp-ai-content-generator-zip
+        path: mp-ai-content-generator.zip
+
