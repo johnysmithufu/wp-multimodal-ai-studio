@@ -1,0 +1,63 @@
+name: Build and Zip OmniQuill Pro
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout the repository
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    # 2. Setup Node.js for compilation
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    # 3. Install Dependencies
+    - name: Install Node Dependencies
+      run: npm ci
+
+    # 4. Build React Assets
+    # [span_15](start_span)This runs "wp-scripts build" as defined in package.json[span_15](end_span)
+    # [span_16](start_span)Creates the /build directory required by class-omni-admin.php[span_16](end_span)
+    - name: Build Assets
+      run: npm run build
+
+    # 5. Prepare Release Folder
+    - name: Prepare Plugin Artifact
+      run: |
+        mkdir omni-quill-pro
+        # Copy core PHP files
+        cp omni-quill.php omni-quill-pro/
+        
+        # Copy Directory Structures
+        cp -r admin omni-quill-pro/
+        cp -r includes omni-quill-pro/
+        
+        # Copy Compiled Assets (Crucial)
+        cp -r build omni-quill-pro/
+        
+        # Copy Documentation
+        cp README.md omni-quill-pro/
+        
+        # Exclude: src, node_modules, .git, .github
+
+    # 6. Zip the Folder
+    - name: Zip Plugin
+      run: zip -r omni-quill-pro.zip omni-quill-pro
+
+    # 7. Upload Artifact (Available in GitHub Actions Summary)
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: omni-quill-pro-zip
+        path: omni-quill-pro.zip
